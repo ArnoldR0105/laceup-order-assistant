@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from app import process_order, item_names, inventory_df, normalized_to_original
+from app import process_order, item_names, inventory_df
 
 COLUMN_NAMES = [
     "Customer Item",
