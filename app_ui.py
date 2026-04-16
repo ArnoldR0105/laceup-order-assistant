@@ -1,5 +1,8 @@
 import pandas as pd
 import streamlit as st
+import pytesseract
+pytesseract.pytesseract.tesseract_cmd = "/opt/homebrew/bin/tesseract"
+from PIL import Image
 from app import process_order, item_names, inventory_df
 
 COLUMN_NAMES = [
@@ -14,6 +17,57 @@ COLUMN_NAMES = [
     "Selected Match",
     "Remove"
 ]
+
+def ocr_function(uploaded_file):
+    try:
+        image = Image.open(uploaded_file)
+        text = pytesseract.image_to_string(image)
+        return text.strip()
+    except Exception as e:
+        st.error(f"Error processing image: {e}")
+        return ""
+
+def clean_ocr_text(text):
+    lines = text.splitlines()
+    cleaned_lines = []
+
+    ignore_words = {
+        "total", "subtotal", "tax", "thank", "thanks", "receipt",
+        "invoice", "date", "phone", "address", "cash", "card"
+    }
+
+    number_words = {
+        "one", "two", "three", "four", "five",
+        "six", "seven", "eight", "nine", "ten",
+        "uno", "dos", "tres", "cuatro", "cinco",
+        "seis", "siete", "ocho", "nueve", "diez"
+    }
+
+    inventory_keywords = set()
+    for name in item_names:
+        for word in name.split():
+            inventory_keywords.add(word)
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        lower_line = line.lower()
+
+        if any(word in lower_line for word in ignore_words):
+            continue
+
+        words = lower_line.split()
+
+        has_digit = any(word.isdigit() for word in words)
+        has_number_word = any(word in number_words for word in words)
+        has_inventory_word = any(word in inventory_keywords for word in words)
+
+        if has_inventory_word and (has_digit or has_number_word):
+            cleaned_lines.append(line)
+
+    return "\n".join(cleaned_lines)
 
 def clear_order():
     st.session_state.raw_df = None
@@ -35,12 +89,22 @@ if "order_input" not in st.session_state:
     st.session_state.order_input = ""
 if "selected_suggestions" not in st.session_state:
     st.session_state.selected_suggestions = {}
+if "ocr_text" not in st.session_state:
+    st.session_state.ocr_text = ""
 
 st.title("LaceUp Order Assistant")
 
 col1, col2 = st.columns([4, 1])
 
 with col1:
+    upload_file = st.file_uploader("Upload order photo", type=["png", "jpg", "jpeg"])
+    if upload_file is not None:
+        if st.button("Extract Text from Photo"):
+            extracted_text = ocr_function(upload_file)
+            cleaned_text = clean_ocr_text(extracted_text)
+            st.session_state.ocr_text = extracted_text
+            st.session_state.order_input = extracted_text
+            st.rerun()
     user_input = st.text_area("Enter customer order:", key="order_input")
 
 with col2:
