@@ -12,6 +12,47 @@ normalized_to_original = dict(
 
 item_names = list(inventory_df["normalized_name"])
 
+def normalize_customer_item_text(text):
+    text = text.lower().strip()
+
+    replacements = {
+        "gandulez": "gandules",
+        "gandules": "gandules frozen",
+        "bacalao": "bacalao salted cod",
+        "naranja agria": "sour orange naranja agria",
+        "surillo": "sour orange naranja agria",
+        "orange bitter": "bitter orange marinade",
+        "mango pulp": "mango frozen pulp",
+        "frozen mango pulp": "mango frozen pulp",
+        "yuca rellena": "yuca rellena",
+        "margarina": "margarine",
+        "beef base": "beef base concentrate",
+        "salsa tomato": "tomato sauce",
+        "salsa de tomate": "tomato sauce",
+        "pure de tomate": "tomato puree",
+        "purre de tomate": "tomato puree",
+        "purrre de tomate": "tomato puree",
+        "mostaza": "mustard",
+        "queso suizo": "swiss cheese",
+        "pan cubano": "cuban bread",
+        "bacalao salado": "bacalao salted cod",
+        "malta tan bueno": "malta tan bueno",
+        "madro tan bueno": "malta tan bueno",
+        "malanga": "malanga root",
+        "yuca": "yuca",
+        "platanos verdes": "plantains green",
+        "platanos maduros": "plantains ripe",
+        "aceite vegetal": "cooking oil vegetable",
+        "aceite de oliva": "olive oil extra virgin",
+        "leche evaporada": "evaporated milk cans",
+        "servilletas": "napkins 3 ply"
+    }
+
+    for source, target in replacements.items():
+        text = text.replace(source, target)
+
+    return text
+
 def process_order(customer_order, item_names):
     results = []
     customer_order = customer_order.replace("\n", ",")
@@ -54,19 +95,29 @@ def process_order(customer_order, item_names):
             word for word in item_name.split() if word not in remove_words
         )
 
-        clean_item = item_name.strip().lower()
+        clean_item_original = item_name.strip().lower()
+        clean_item_helper = normalize_customer_item_text(clean_item_original)
         scored_matches = []
-        input_words = set(clean_item.split())
+        input_words_original = set(clean_item_original.split())
+        input_words_helper = set(clean_item_helper.split())
         for name in item_names:
-            token_score = fuzz.token_sort_ratio(clean_item, name)
-            partial_score = fuzz.partial_ratio(clean_item, name)
-            base_score = max(token_score, partial_score)
+            token_score_original = fuzz.token_sort_ratio(clean_item_original, name)
+            partial_score_original = fuzz.partial_ratio(clean_item_helper, name)
+            base_score = max(token_score_original, partial_score_original)
+
+            token_score_helper = fuzz.token_sort_ratio(clean_item_helper, name)
+            partial_score_helper = fuzz.partial_ratio(clean_item_helper, name)
+            base_score_helper = max(token_score_helper, partial_score_helper)
             
             name_words = set(name.split())
-            common_words = input_words & name_words
+            common_words_original = input_words_original & name_words
+            common_words_helper = input_words_helper & name_words
             
-            boost = len(common_words) * 3  
-            final_score = min(base_score + boost, 100)
+            boost_original = len(common_words_original) * 3
+            boost_helper = len(common_words_helper) * 3
+            final_score_original = min(base_score + boost_original, 100)
+            final_score_helper = min(base_score_helper + boost_helper, 100)
+            final_score = max(final_score_original, final_score_helper)
             
             scored_matches.append((name, final_score))
 
