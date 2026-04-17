@@ -1,5 +1,7 @@
 # LaceUp Order Assistant
 
+**Live Demo:** https://laceup-order-assistant.streamlit.app
+
 A Streamlit-based application that processes messy and disorganized customer orders and converts them into structured, inventory-matched outputs with pricing, confidence scoring, and export functionality.
 
 ## 🚀 Features
