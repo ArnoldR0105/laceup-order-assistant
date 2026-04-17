@@ -103,7 +103,7 @@ with col1:
             extracted_text = ocr_function(upload_file)
             cleaned_text = clean_ocr_text(extracted_text)
             st.session_state.ocr_text = extracted_text
-            st.session_state.order_input = extracted_text
+            st.session_state.order_input = cleaned_text
             st.rerun()
     user_input = st.text_area("Enter customer order:", key="order_input")
 
@@ -226,7 +226,7 @@ if st.session_state.raw_df is not None:
                 selected = st.session_state.selected_suggestions.get(i, "")
                 if selected:
                     price = inventory_df.loc[
-                        inventory_df["normalized_name"] == selected, "price"
+                        inventory_df["item_name"] == selected, "price"
                         ].values[0]
 
                     st.session_state.raw_df.loc[i, "match"] = selected
@@ -242,7 +242,9 @@ if st.session_state.raw_df is not None:
     display_df["Suggestions"] = display_df["Suggestions"].apply(lambda x: ", ".join(x) if isinstance(x, list) else "")
     display_df.loc[display_df["Status"] == "High confidence match","Suggestions"] = ""
     
-    review_csv = display_df.to_csv(index=False)
+    review_export_df = display_df.copy()
+    review_export_df = review_export_df.drop(columns=["Selected Match", "Remove"], errors="ignore")
+    review_csv = review_export_df.to_csv(index=False)
     
     import_df = st.session_state.raw_df.copy()
     import_df = import_df[import_df["remove"] == False]
