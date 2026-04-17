@@ -2,7 +2,7 @@ import pandas as pd
 from thefuzz import process, fuzz
 from utility import word_to_num, remove_words
 
-inventory_df = pd.read_csv("jcfoods_inventory.csv")
+inventory_df = pd.read_csv("foods_inventory.csv")
 
 inventory_df["normalized_name"] = inventory_df["item_name"].str.strip().str.lower()
 
@@ -16,7 +16,6 @@ def normalize_customer_item_text(text):
     text = text.lower().strip()
 
     replacements = {
-    # Existing order-language fixes
     "gandulez": "gandules",
     "gandules": "gandules frozen",
     "bacalao": "bacalao salted cod",
