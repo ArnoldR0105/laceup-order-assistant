@@ -22,5 +22,11 @@ word_to_num = {
     "nueve": 9,
     "diez": 10
 }
+remove_words = [
+    "of",
+    "a", "un",
+    "the", "el", "la",
+    "case", "caja"
+]
 
-remove_words = {"case", "cases", "of", "box", "boxes"}
+   

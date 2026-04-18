@@ -1,10 +1,19 @@
 import pandas as pd
 from thefuzz import process, fuzz
 from utility import word_to_num, remove_words
+from translations import translations
+
+def normalize_customer_item_text(text):
+    text = text.lower().strip()
+
+    for source, target in sorted(translations.items(), key=lambda x: len(x[0]), reverse=True):
+        text = text.replace(source, target)
+
+    return text
 
 inventory_df = pd.read_csv("foods_inventory.csv")
 
-inventory_df["normalized_name"] = inventory_df["item_name"].str.strip().str.lower()
+inventory_df["normalized_name"] = inventory_df["item_name"].apply(lambda x: normalize_customer_item_text(str(x).strip().lower()))
 
 normalized_to_original = dict(
     zip(inventory_df["normalized_name"], inventory_df["item_name"])
@@ -12,139 +21,6 @@ normalized_to_original = dict(
 
 item_names = list(inventory_df["normalized_name"])
 
-def normalize_customer_item_text(text):
-    text = text.lower().strip()
-
-    replacements = {
-    "gandulez": "gandules",
-    "gandules": "gandules frozen",
-    "bacalao": "bacalao salted cod",
-    "bacalao salado": "bacalao salted cod",
-    "naranja agria": "sour orange naranja agria",
-    "surillo": "sour orange naranja agria",
-    "orange bitter": "bitter orange marinade",
-    "mango pulp": "mango frozen pulp",
-    "frozen mango pulp": "mango frozen pulp",
-    "yuca rellena": "yuca rellena",
-    "margarina": "margarine",
-    "beef base": "beef base concentrate",
-    "salsa tomato": "tomato sauce",
-    "salsa de tomate": "tomato sauce",
-    "pure de tomate": "tomato puree",
-    "purre de tomate": "tomato puree",
-    "purrre de tomate": "tomato puree",
-    "mostaza": "mustard",
-    "queso suizo": "swiss cheese",
-    "pan cubano": "cuban bread",
-    "malta tan bueno": "malta tan bueno",
-    "madro tan bueno": "malta tan bueno",
-    "platanos verdes": "plantains green",
-    "platanos maduros": "plantains ripe",
-    "aceite vegetal": "cooking oil vegetable",
-    "aceite de oliva": "olive oil",
-    "leche evaporada": "evaporated milk",
-    "servilletas": "napkins 3 ply",
-    "yuca": "yuca",
-    "masa de yuca": "masa de yuca",
-    "yuca frita": "yuca fries",
-    "yuca fries": "yuca fries",
-    "yuca cheese bites": "yuca cheese bites",
-    "stuffed cassava": "yuca rellena",
-    "cassava": "yuca",
-    "arroz": "rice",
-    "arroz rico": "rice rico",
-    "arroz blanco": "white rice",
-    "arroz jazmin": "jasmine rice",
-    "arroz jasmin": "jasmine rice",
-    "arroz largo": "long grain rice",
-    "arroz de grano largo": "long grain rice",
-    "parboiled rice": "parboiled rice",
-    "aceituna negra": "black olives",
-    "aceitunas negras": "black olives",
-    "adobo con cumino": "adobo cumin",
-    "adobo con comino": "adobo cumin",
-    "adobo sin pimienta": "adobo without pepper",
-    "adobo con pimienta": "adobo with pepper",
-    "adobo sin pimiento": "adobo without pepper",
-    "adobo con pimiento": "adobo with pepper",
-    "aji amarillo": "aji amarillo",
-    "aji amarillo poco picante": "aji amarillo mild",
-    "aji panca": "aji panca",
-    "aji panca poco picante": "aji panca mild",
-    "pasta aji amarillo": "aji amarillo paste",
-    "pasta aji panca": "aji panca paste",
-    "maracumango": "maracumango pulp",
-    "mora": "blackberry pulp",
-    "nance": "nance pulp",
-    "moro": "moro fruit",
-    "okra": "okra",
-    "whole okra": "whole okra",
-    "cut okra": "cut okra",
-    "palitos de queso": "cheese sticks",
-    "pan de yuca": "pan de yuca",
-    "pan de bono": "pan de bono",
-    "pan sobao": "pan sobao",
-    "pan soba": "pan sobao",
-    "pan de mantequilla": "butter bread",
-    "media noche": "media noche",
-    "pan puertorriqueno": "puerto rican bread",
-    "pan puertorriqueño": "puerto rican bread",
-    "toston": "toston",
-    "tostones": "tostones",
-    "patacon": "toston patacon",
-    "patacones": "toston patacon",
-    "tostones de pana": "breadfruit tostones",
-    "toston de pana": "breadfruit tostones",
-    "masa alcapurria": "masa alcapurria",
-    "masa guineo": "masa guineo",
-    "masa malanga": "masa malanga",
-    "malanga": "malanga root",
-    "molasse dominicana": "dominican molasses",
-    "melaza dominicana": "dominican molasses",
-    "melaza": "molasses",
-    "manteca": "lard",
-    "huevos": "eggs",
-    "jamon": "ham",
-    "jamon serrano": "serrano ham",
-    "jamon viejo": "aged ham",
-    "jamonada": "ham loaf",
-    "mortadella": "mortadella",
-    "lomo": "pork loin",
-    "costilla": "ribs",
-    "tocino": "bacon",
-    "chicharrones": "pork rinds",
-    "chorizo molido": "ground chorizo",
-    "chorizo mexicano": "mexican chorizo",
-    "chorizo toscana": "toscana sausage",
-    "chistorra": "chistorra",
-    "cantimpalo": "cantimpalo",
-    "salchichon": "salchichon",
-    "morcilla": "blood sausage",
-    "calamares": "squid",
-    "mejillones": "mussels",
-    "sardinas": "sardines",
-    "paella": "paella",
-    "corazon de palma": "hearts of palm",
-    "corazones de palma": "hearts of palm",
-    "alcachofa": "artichoke",
-    "alcachofas": "artichokes",
-    "queso": "cheese",
-    "queso crema": "cream cheese",
-    "queso amarillo": "yellow cheese",
-    "queso blanco": "white cheese",
-    "queso suizo": "swiss cheese",
-    "queso de papa": "potato cheese",
-    "pan de yucca": "pan de yuca",
-    "aji": "aji",
-    "pimienta": "pepper",
-    "cumino": "cumin",
-    "comino": "cumin"
-}
-
-    for source, target in replacements.items():
-        text = text.replace(source, target)
-
-    return text
 
 def process_order(customer_order, item_names):
     results = []
